@@ -18,7 +18,7 @@ const Home = () => {
             <header className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <img src={trusunlogo} alt="TRUE Brand" className="h-36 w-auto object-contain hover:scale-105 transition-transform duration-300" />
+                        <img src={trusunlogo} alt="TRUE Brand" className="h-16 w-auto object-contain hover:scale-105 transition-transform duration-300" />
                     </div>
                     {/* <nav className="hidden md:flex gap-6 text-sm font-medium text-slate-600">
                         <button onClick={() => { }} className="hover:text-[#0F40C5] transition-colors">Support</button>
@@ -34,12 +34,11 @@ const Home = () => {
                     <div className="text-center space-y-8 mb-16 animate-in slide-in-from-bottom-10 fade-in duration-1000">
 
                         <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-[#0F40C5] to-slate-900 tracking-tighter pb-4 drop-shadow-sm animate-gradient-x">
-                            TRUE SUN
+                            TRUE SUN TRADING COMPANY
                         </h1>
                         <p className="text-xl md:text-2xl text-slate-500 max-w-3xl mx-auto leading-relaxed font-medium">
-                            <span className="text-slate-800">UNIQUE SOLUTIONS</span> FOR RESIDENTIALS & INDUSTRIES
+                            <span className="text-slate-800">Complete Solar Solutions</span> From start to shine
                             <br className="hidden md:block" />
-                            <span className="text-base text-slate-400 font-normal mt-2 block">Premium verification services at your fingertips.</span>
                         </p>
                     </div>
 
@@ -60,7 +59,7 @@ const Home = () => {
                                 </div>
                                 <div>
                                     <h3 className="text-3xl font-bold text-slate-800 mb-2 group-hover:text-[#0F40C5] transition-colors">New Request</h3>
-                                    <p className="text-slate-500 text-lg leading-relaxed">Submit details for a new installation site verification securely.</p>
+                                    <p className="text-slate-500 text-lg leading-relaxed">Submit details for a new warranty certificate.</p>
                                 </div>
                                 <button
                                     className="mt-2 flex items-center gap-3 text-[#0F40C5] font-bold text-lg group-hover:gap-5 transition-all"

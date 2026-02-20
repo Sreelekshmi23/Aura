@@ -9,7 +9,8 @@ import {
     ArrowRight,
     Loader2,
     Copy,
-    Check
+    Check,
+    ArrowLeft
 } from "lucide-react";
 import { serverTimestamp, doc, getDoc, updateDoc, runTransaction } from "firebase/firestore";
 import { db } from "../firebase";
@@ -26,7 +27,7 @@ const PRIMARY_COLOR = "#0F40C5"; // Coral
 // --- Helper Components ---
 
 // Moved Input outside to prevent re-mounting (and focus loss) on every render
-const Input = ({ label, name, type = "text", required = false, value, onChange, disabled }) => (
+const Input = ({ label, name, type = "text", required = false, value, onChange, disabled, autoComplete }) => (
     <div className="flex flex-col">
         <label className="text-sm font-medium text-slate-700 mb-1">
             {label} {required && <span className="text-red-500">*</span>}
@@ -40,6 +41,7 @@ const Input = ({ label, name, type = "text", required = false, value, onChange, 
             disabled={disabled}
             className="rounded-lg border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F40C5]/20 focus:border-[#0F40C5] transition-all disabled:bg-gray-50 disabled:text-gray-400"
             placeholder={label}
+            autoComplete={autoComplete}
         />
     </div>
 );
@@ -129,6 +131,16 @@ export default function FormPage() {
             sanitizedValue = value.replace(/[^a-zA-Z0-9@._-]/g, "");
         }
 
+        // Validation: Project Site Address - Restrict special characters (e.g. links)
+        if (name === "customerProjectSite") {
+            // Allow letters, numbers, spaces, and common address punctuation (., - / #)
+            const addressRegex = /^[a-zA-Z0-9\s,.\-/#]*$/;
+            if (!addressRegex.test(value)) {
+                alert("Invalid Data: Special characters are not allowed in the Project Site Address.");
+                return; // Do not accept the input
+            }
+        }
+
         setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
     };
 
@@ -137,6 +149,12 @@ export default function FormPage() {
     };
 
     const updateSerialNumber = (index, value) => {
+        const trimmedValue = value.trim();
+        // Check for duplicates
+        if (trimmedValue && serialNumbers.some((sn, i) => i !== index && sn.trim() === trimmedValue)) {
+            alert("Invalid Data: This serial number has already been entered.");
+        }
+
         const updated = [...serialNumbers];
         updated[index] = value;
         setSerialNumbers(updated);
@@ -272,9 +290,11 @@ export default function FormPage() {
                     // Determine starting point
                     let nextId;
                     if (!counterDoc.exists()) {
-                        nextId = 167; // Start at 167 if counter doesn't exist
+                        nextId = 1677; // Start at 1677 if counter doesn't exist
                     } else {
-                        nextId = Number(counterDoc.data().currentValue) + 1;
+                        // Ensure we jump to at least 1677 if the current counter is lower
+                        const currentVal = Number(counterDoc.data().currentValue);
+                        nextId = currentVal < 1677 ? 1677 : currentVal + 1;
                     }
 
                     // Collision Detection Loop: Find the first available ID
@@ -285,7 +305,7 @@ export default function FormPage() {
                     const maxAttempts = 10;
 
                     while (attempts < maxAttempts) {
-                        const candidateId = `WR${String(nextId).padStart(3, '0')}`;
+                        const candidateId = `WR_${String(nextId)}`; // Format: WR_1677
                         const candidateRef = doc(db, "requests", candidateId);
                         const candidateDoc = await transaction.get(candidateRef);
 
@@ -350,6 +370,25 @@ export default function FormPage() {
             {/* --- Main Content --- */}
             {/* Dynamic styles removed in favor of Tailwind utility classes */}
 
+            {/* Header */}
+            <header className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+                <div className="max-w-3xl mx-auto px-6 h-20 flex items-center justify-between">
+                    <img
+                        src={trusunlogo}
+                        alt="TRUE Brand"
+                        className="h-12 w-auto object-contain cursor-pointer hover:scale-105 transition-transform duration-300"
+                        onClick={() => window.location.href = '/'}
+                    />
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="flex items-center text-slate-500 hover:text-[#0F40C5] transition-colors font-medium"
+                    >
+                        <ArrowLeft className="w-5 h-5 mr-2" />
+                        Back to Home
+                    </button>
+                </div>
+            </header>
+
             <main className="max-w-3xl mx-auto px-4 py-8">
 
                 {isSubmitted ? (
@@ -360,7 +399,7 @@ export default function FormPage() {
                         </div>
                         <h2 className="text-3xl font-bold text-slate-800 mb-4">Request Submitted!</h2>
                         <p className="text-slate-500 mb-6 max-w-md mx-auto">
-                            Your installation verification request has been successfully sent to True Sun for scrutiny.
+                            Your warranty request has been successfully submitted and is now under review.
                         </p>
 
                         {requestId && (
@@ -414,16 +453,16 @@ export default function FormPage() {
                     // --- Form State ---
                     <div className="bg-white shadow-xl rounded-2xl p-8 border border-slate-100">
                         {/* Logos Header */}
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-row justify-between items-center mb-12 gap-4">
                             <img
                                 src={premier}
                                 alt="Premier Energies"
-                                className="h-36 w-auto object-contain"
+                                className="h-10 sm:h-12 w-auto object-contain"
                             />
                             <img
                                 src={trusunlogo}
                                 alt="TRUE Brand"
-                                className="h-48 w-auto object-contain"
+                                className="h-10 sm:h-12 w-auto object-contain"
                             />
                         </div>
 
@@ -518,6 +557,7 @@ export default function FormPage() {
                                 value={formData.customerAlternate}
                                 onChange={handleChange}
                                 disabled={isSubmitting}
+                                autoComplete="off"
                             />
                             <Input
                                 label="Customer Email"
@@ -535,6 +575,7 @@ export default function FormPage() {
                                 value={formData.customerAlternateEmail}
                                 onChange={handleChange}
                                 disabled={isSubmitting}
+                                autoComplete="off"
                             />
 
                             {/* Serial Numbers */}
@@ -612,6 +653,7 @@ export default function FormPage() {
                                             <Upload size={24} className="text-slate-500" />
                                         </div>
                                         <p className="text-sm font-medium text-slate-700">Click to upload or drag and drop</p>
+                                        <p className="text-xs text-orange-600 font-semibold mt-1">Please upload geotagged photos</p>
                                         <p className="text-xs text-slate-400 mt-1">SVG, PNG, JPG or GIF (Max 3MB)</p>
                                     </div>
                                 </div>

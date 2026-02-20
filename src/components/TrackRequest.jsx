@@ -8,6 +8,7 @@ import trusunlogo from "../assets/Images/Trusunlogo.png";
 const TrackRequest = () => {
     const [requestId, setRequestId] = useState('');
     const [status, setStatus] = useState(null); // 'pending', 'accepted', 'rejected', or null
+    const [rejectionReason, setRejectionReason] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [searched, setSearched] = useState(false);
@@ -28,6 +29,7 @@ const TrackRequest = () => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setStatus(data.status || 'pending');
+                setRejectionReason(data.rejectionReason || '');
             } else {
                 setError("Request ID not found. Please check and try again.");
             }
@@ -46,8 +48,8 @@ const TrackRequest = () => {
         if (['accepted', 'approved', 'verified', 'completed'].includes(normalizedStatus)) {
             return {
                 icon: <CheckCircle className="w-16 h-16 text-green-500" />,
-                title: "Request Accepted by True Sun",
-                desc: "Your request has been successfully processed and approved.",
+                title: "Request Accepted by True Sun Trading Company",
+                desc: "Your request has been forwarded to Premier Energies, Kindly wait for the approval from Premier Energies.",
                 color: "bg-green-50 border-green-200 text-green-700"
             };
         }
@@ -55,8 +57,8 @@ const TrackRequest = () => {
         if (['rejected', 'declined', 'denied'].includes(normalizedStatus)) {
             return {
                 icon: <XCircle className="w-16 h-16 text-red-500" />,
-                title: "Request Rejected by True Sun",
-                desc: "Your request was declined. Please contact support for details.",
+                title: "Request Rejected by True Sun Trading Company",
+                desc: rejectionReason ? `Your request was declined due to: ${rejectionReason}` : "Your request was declined. Please check your email for more details.",
                 color: "bg-red-50 border-red-200 text-red-700"
             };
         }
@@ -64,7 +66,7 @@ const TrackRequest = () => {
         if (['pending', 'in review', 'processing'].includes(normalizedStatus)) {
             return {
                 icon: <Clock className="w-16 h-16 text-amber-500" />,
-                title: "Request Pending with True Sun",
+                title: "Request Pending with True Sun Trading Company",
                 desc: "We are currently reviewing your request. Please check back later.",
                 color: "bg-amber-50 border-amber-200 text-amber-700"
             };
@@ -92,15 +94,15 @@ const TrackRequest = () => {
 
             {/* Header */}
             <header className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
-                <div className="max-w-3xl mx-auto px-6 h-20 flex items-center">
+                <div className="max-w-3xl mx-auto px-6 h-20 flex items-center justify-between">
+                    <img src={trusunlogo} alt="TRUE Brand" className="h-12 w-auto object-contain cursor-pointer hover:scale-105 transition-transform duration-300" onClick={() => window.location.href = '/'} />
                     <button
                         onClick={() => window.location.href = '/'}
-                        className="flex items-center text-slate-500 hover:text-[#0F40C5] transition-colors"
+                        className="flex items-center text-slate-500 hover:text-[#0F40C5] transition-colors font-medium"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
                         Back to Home
                     </button>
-                    <img src={trusunlogo} alt="TRUE Brand" className="ml-auto h-36 w-auto object-contain" />
                 </div>
             </header>
 
@@ -121,7 +123,7 @@ const TrackRequest = () => {
                                 type="text"
                                 value={requestId}
                                 onChange={(e) => setRequestId(e.target.value)}
-                                placeholder="Request ID (e.g. WR167)"
+                                placeholder="Request ID (e.g. WR_1677)"
                                 className="w-full h-14 pl-5 pr-14 rounded-2xl border-2 border-white/50 bg-white/80 focus:bg-white focus:border-[#0F40C5] focus:ring-4 focus:ring-[#0F40C5]/10 outline-none text-lg transition-all shadow-sm placeholder:text-slate-400 font-medium"
                             />
                             <button
