@@ -149,6 +149,12 @@ export default function FormPage() {
     };
 
     const updateSerialNumber = (index, value) => {
+        // Validation: No whitespace or commas allowed
+        if (/[\s,]/.test(value)) {
+            alert("Invalid Data: Serial numbers should not contain whitespace or commas.");
+            return;
+        }
+
         const trimmedValue = value.trim();
         // Check for duplicates
         if (trimmedValue && serialNumbers.some((sn, i) => i !== index && sn.trim() === trimmedValue)) {
@@ -202,13 +208,24 @@ export default function FormPage() {
                     setSerialNumbers(prev => {
                         // Create a set of existing serial numbers (trimmed and lowercase for case-insensitive check if needed, but let's stick to exact match for now)
                         const existingSet = new Set(prev.map(s => String(s).trim()));
+
+                        // Filter out serial numbers with whitespace or commas
+                        const validNewBatch = newSerialNumbers.filter(s => {
+                            if (/[\s,]/.test(String(s))) return false;
+                            return true;
+                        });
+
+                        if (validNewBatch.length < newSerialNumbers.length) {
+                            alert(`Filtered out ${newSerialNumbers.length - validNewBatch.length} serial number(s) containing invalid characters (whitespace or commas).`);
+                        }
+
                         // Deduplicate within the new batch itself first, then filter against existing
-                        const uniqueNew = [...new Set(newSerialNumbers.map(String).map(s => s.trim()))]
+                        const uniqueNew = [...new Set(validNewBatch.map(String).map(s => s.trim()))]
                             .filter(s => s && !existingSet.has(s)); // Filter out empty strings and duplicates
 
                         // If all new numbers were duplicates
-                        if (uniqueNew.length < newSerialNumbers.length) {
-                            alert(`Filtered out ${newSerialNumbers.length - uniqueNew.length} duplicate serial number(s).`);
+                        if (uniqueNew.length < validNewBatch.length) {
+                            alert(`Filtered out ${validNewBatch.length - uniqueNew.length} duplicate serial number(s).`);
                         }
 
                         if (prev.length === 1 && prev[0] === "") {
@@ -713,5 +730,4 @@ export default function FormPage() {
             </main>
         </div >
     );
-
 }
