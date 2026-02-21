@@ -122,7 +122,7 @@ export default function FormPage() {
         let sanitizedValue = value;
 
         // Validation: Only numbers for phone fields
-        if (["contactNo", "customerAlternate"].includes(name)) {
+        if (["contactNo", "customerContact", "customerAlternate"].includes(name)) {
             sanitizedValue = value.replace(/[^0-9]/g, "");
         }
 
@@ -561,7 +561,7 @@ export default function FormPage() {
                                 />
                             </div>
                             <Input
-                                label="Site Contact Person"
+                                label="Contact Number"
                                 name="customerContact"
                                 required
                                 value={formData.customerContact}
