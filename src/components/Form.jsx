@@ -46,9 +46,56 @@ const Input = ({ label, name, type = "text", required = false, value, onChange, 
     </div>
 );
 
+const ConfirmationModal = ({ isOpen, onConfirm, onCancel, isSubmitting }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-slate-100 animate-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 mx-auto">
+                    <Save size={32} className="text-[#0F40C5]" />
+                </div>
+
+                <h3 className="text-2xl font-bold text-slate-800 text-center mb-3">Confirm Submission</h3>
+                <p className="text-slate-500 text-center mb-6 px-2 text-sm leading-relaxed">
+                    Please ensure that all the details provided are correct and that you have uploaded a <span className="font-bold text-orange-600">geotagged</span> site picture.
+                </p>
+
+                <div className="space-y-3">
+                    <button
+                        onClick={onConfirm}
+                        disabled={isSubmitting}
+                        className="w-full bg-[#0F40C5] text-white py-3 rounded-xl font-semibold shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                Submitting...
+                            </>
+                        ) : (
+                            <>
+                                <Check size={18} />
+                                Yes, Submit Form
+                            </>
+                        )}
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        disabled={isSubmitting}
+                        className="w-full bg-white text-slate-600 py-3 rounded-xl font-semibold border border-slate-200 hover:bg-slate-50 transition-all"
+                    >
+                        No, Go Back and Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function FormPage() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     // --- Form State ---
     const [formData, setFormData] = useState({
@@ -255,7 +302,7 @@ export default function FormPage() {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
 
         // VALIDATION: Check if at least one image is uploaded (new files OR existing previews)
@@ -271,6 +318,11 @@ export default function FormPage() {
             return;
         }
 
+        // Show confirmation modal instead of submitting directly
+        setShowConfirmation(true);
+    };
+
+    const processSubmission = async () => {
         setIsSubmitting(true);
 
         try {
@@ -354,10 +406,12 @@ export default function FormPage() {
             setRequestId(finalDocId);
             setIsSubmitting(false);
             setIsSubmitted(true);
+            setShowConfirmation(false); // Close modal on success
         } catch (error) {
             console.error("Error submitted form:", error);
             alert("Submission failed: " + error.message);
             setIsSubmitting(false);
+            // We keep the modal open so user can try again or go back
         }
     };
 
@@ -383,6 +437,14 @@ export default function FormPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-slate-800">
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showConfirmation}
+                onConfirm={processSubmission}
+                onCancel={() => setShowConfirmation(false)}
+                isSubmitting={isSubmitting}
+            />
 
             {/* --- Main Content --- */}
             {/* Dynamic styles removed in favor of Tailwind utility classes */}
