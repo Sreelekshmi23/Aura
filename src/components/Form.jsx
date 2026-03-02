@@ -186,7 +186,7 @@ export default function FormPage() {
         }
 
         // Validation: Alphanumeric + standard email symbols for email fields
-        if (["email", "customerEmail", "customerAlternateEmail"].includes(name)) {
+        if (["email", "customerEmail"].includes(name)) {
             sanitizedValue = value.replace(/[^a-zA-Z0-9@._-]/g, "");
         }
 
@@ -670,7 +670,7 @@ export default function FormPage() {
                             <Input
                                 label="Alternate Email"
                                 name="customerAlternateEmail"
-                                type="email"
+                                type="text"
                                 value={formData.customerAlternateEmail}
                                 onChange={handleChange}
                                 disabled={isSubmitting}
