@@ -49,7 +49,7 @@ const Input = ({ label, name, type = "text", required = false, value, onChange, 
                 disabled={disabled}
                 onFocus={onFocus}
                 onBlur={onBlur}
-                className="rounded-lg border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F40C5]/20 focus:border-[#0F40C5] transition-all disabled:bg-gray-50 disabled:text-gray-400 w-full"
+                className="rounded-lg border border-slate-200 px-4 py-2.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-[#0F40C5]/20 focus:border-[#0F40C5] transition-all disabled:bg-gray-50 disabled:text-gray-400 w-full"
                 placeholder={label}
                 autoComplete={autoComplete}
             />
@@ -480,11 +480,11 @@ export default function FormPage() {
                 </div>
             </header>
 
-            <main className="max-w-3xl mx-auto px-4 py-8">
+            <main className="max-w-3xl mx-auto px-2 sm:px-4 py-6 sm:py-8">
 
                 {isSubmitted ? (
                     // --- Success State ---
-                    <div className="bg-white rounded-2xl shadow-xl p-12 text-center border border-slate-100 animate-in fade-in zoom-in duration-300">
+                    <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-12 text-center border border-slate-100 animate-in fade-in zoom-in duration-300">
                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                             <CheckCircle size={40} className="text-green-600" />
                         </div>
@@ -542,9 +542,9 @@ export default function FormPage() {
                     </div>
                 ) : (
                     // --- Form State ---
-                    <div className="bg-white shadow-xl rounded-2xl p-8 border border-slate-100">
+                    <div className="bg-white shadow-xl rounded-2xl p-5 sm:p-8 border border-slate-100">
                         {/* Logos Header */}
-                        <div className="flex flex-row justify-between items-center mb-12 gap-4">
+                        <div className="flex flex-row justify-between items-center mb-8 sm:mb-12 gap-4">
                             <img
                                 src={premier}
                                 alt="Premier Energies"
@@ -568,7 +568,7 @@ export default function FormPage() {
                             </p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
 
                             {/* Integrator Section */}
                             <div className="md:col-span-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 mb-2">
@@ -737,7 +737,7 @@ export default function FormPage() {
                                     Site Pictures (Evidence) <span className="text-red-500">*</span>
                                 </label>
                                 <div
-                                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors relative ${isSubmitting ? 'bg-gray-50 border-gray-200' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}`}
+                                    className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center transition-colors relative ${isSubmitting ? 'bg-gray-50 border-gray-200' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}`}
                                 >
                                     <input
                                         type="file"
