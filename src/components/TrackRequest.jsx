@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Search, ArrowLeft, Loader2, CheckCircle, XCircle, Clock, AlertCircle, Edit2 } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+// Firebase interactions moved to backend
 
 import trusunlogo from "../assets/Images/Trusunlogo.png";
 
@@ -23,11 +22,10 @@ const TrackRequest = () => {
         setSearched(false);
 
         try {
-            const docRef = doc(db, "requests", requestId.trim());
-            const docSnap = await getDoc(docRef);
+            const response = await fetch(`https://ninja-penguin-backend-1.onrender.com/api/requests/${requestId.trim()}`);
 
-            if (docSnap.exists()) {
-                const data = docSnap.data();
+            if (response.ok) {
+                const data = await response.json();
                 setStatus(data.status || 'pending');
                 setRejectionReason(data.rejectionReason || '');
             } else {
@@ -88,8 +86,8 @@ const TrackRequest = () => {
 
             {/* Background Decorations (Shared with Home) */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-100/50 rounded-full blur-3xl opacity-60 mix-blend-multiply animate-blob"></div>
-                <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-100/50 rounded-full blur-3xl opacity-60 mix-blend-multiply animate-blob animation-delay-2000"></div>
+                <div className="absolute top-[-10%] right-[-5%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-100/50 rounded-full blur-3xl opacity-60 mix-blend-multiply animate-blob"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-indigo-100/50 rounded-full blur-3xl opacity-60 mix-blend-multiply animate-blob animation-delay-2000"></div>
             </div>
 
             {/* Header */}
@@ -106,9 +104,9 @@ const TrackRequest = () => {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
-                <div className="w-full max-w-lg bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50 animate-in slide-in-from-bottom-8 fade-in duration-700">
-                    <div className="text-center mb-10">
+            <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 relative z-10">
+                <div className="w-full max-w-lg bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-10 border border-white/50 animate-in slide-in-from-bottom-8 fade-in duration-700">
+                    <div className="text-center mb-8 sm:mb-10">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg shadow-slate-500/30 mb-6">
                             <Search className="text-white w-8 h-8" />
                         </div>
@@ -137,8 +135,8 @@ const TrackRequest = () => {
                     </form>
 
                     {searched && !error && (
-                        <div className={`rounded-3xl p-8 border text-center animate-in zoom-in duration-500 ${statusConfig.color} shadow-lg shadow-gray-200/50 backdrop-blur-sm`}>
-                            <div className="flex justify-center mb-6 bg-white w-20 h-20 rounded-full items-center mx-auto shadow-sm ring-4 ring-white/50">
+                        <div className={`rounded-3xl p-6 sm:p-8 border text-center animate-in zoom-in duration-500 ${statusConfig.color} shadow-lg shadow-gray-200/50 backdrop-blur-sm`}>
+                            <div className="flex justify-center mb-4 sm:mb-6 bg-white w-20 h-20 rounded-full items-center mx-auto shadow-sm ring-4 ring-white/50">
                                 {statusConfig.icon}
                             </div>
                             <h3 className="text-2xl font-bold mb-2 tracking-tight">{statusConfig.title}</h3>

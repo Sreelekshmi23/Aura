@@ -7,6 +7,10 @@ function App() {
   const [view, setView] = useState('home'); // 'home', 'form', 'track'
 
   useEffect(() => {
+    // Wake up the backend server (Render free tier) immediately on app load
+    fetch('https://ninja-penguin-backend-1.onrender.com/')
+      .catch((err) => console.log('Ping failed (expected if server is down)', err));
+
     const params = new URLSearchParams(window.location.search);
     if (params.has('form')) {
       setView('form');
