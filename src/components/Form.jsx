@@ -141,7 +141,7 @@ export default function FormPage() {
 
     const fetchRequestData = async (id) => {
         try {
-            const response = await fetch(`https://ninja-penguin-backend-1.onrender.com/api/requests/${id}`);
+            const response = await fetch(`https://pe-warranty-backend.onrender.com/api/requests/${id}`);
             if (response.ok) {
                 const data = await response.json();
                 setFormData({
@@ -352,7 +352,7 @@ export default function FormPage() {
 
             if (editModeId) {
                 // UPDATE existing document via API
-                const response = await fetch(`https://ninja-penguin-backend-1.onrender.com/api/requests/${editModeId}`, {
+                const response = await fetch(`https://pe-warranty-backend.onrender.com/api/requests/${editModeId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestData)
@@ -364,7 +364,7 @@ export default function FormPage() {
                 console.log("Form Updated Successfully. ID:", finalDocId);
             } else {
                 // CREATE new document via API
-                const response = await fetch(`https://ninja-penguin-backend-1.onrender.com/api/requests`, {
+                const response = await fetch(`https://pe-warranty-backend.onrender.com/api/requests`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestData)
@@ -775,3 +775,4 @@ export default function FormPage() {
         </div >
     );
 }
+
