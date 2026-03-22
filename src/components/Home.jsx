@@ -119,7 +119,8 @@ const Home = () => {
                     <ShieldCheck size={16} />
                     <span>REQUEST FORM PORTAL</span>
                 </div>
-                <p>&copy; {new Date().getFullYear()} Truesun Trading Company. All rights reserved.</p>
+                <p className="text-slate-800 font-medium tracking-tight">&copy; {new Date().getFullYear()} True Sun Trading Company. All rights reserved.</p>
+                <p className="mt-2 text-xs text-slate-400">Developed by <a href="https://fennechron.com" target="_blank" rel="noopener noreferrer" className="hover:underline hover:brightness-110 transition-all font-semibold uppercase tracking-wider">Fennechron labs</a></p>
             </footer>
 
         </div>

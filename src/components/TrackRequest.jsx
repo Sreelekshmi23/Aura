@@ -163,6 +163,12 @@ const TrackRequest = () => {
                     )}
                 </div>
             </main>
+
+            {/* Footer */}
+            <footer className="py-8 text-center text-sm bg-white/50 backdrop-blur-sm border-t border-white/20 relative z-10">
+                <p className="text-slate-800 font-medium tracking-tight">&copy; {new Date().getFullYear()} True Sun Trading Company. All rights reserved.</p>
+                <p className="mt-2 text-xs text-slate-400">Developed by <a href="https://fennechron.com" target="_blank" rel="noopener noreferrer" className="hover:underline hover:brightness-110 transition-all font-semibold uppercase tracking-wider">Fennechron labs</a></p>
+            </footer>
         </div>
     );
 };

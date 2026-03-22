@@ -106,16 +106,20 @@ export default function FormPage() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [addressHints, setAddressHints] = useState({ office: false, site: false });
 
     // --- Form State ---
     const [formData, setFormData] = useState({
         integratorName: "",
-        officeAddress: "",
+        officeLocation: "",
+        officeDistrict: "",
+        officePincode: "",
         contactPerson: "",
         contactNo: "",
         email: "",
-        customerProjectSite: "",
+        siteLocation: "",
+        siteDistrict: "",
+        sitePincode: "",
+        customerName: "",
         customerContact: "",
         customerAlternate: "",
         customerEmail: "",
@@ -144,13 +148,43 @@ export default function FormPage() {
             const response = await fetch(`https://pe-warranty-backend.onrender.com/api/requests/${id}`);
             if (response.ok) {
                 const data = await response.json();
+                const splitAddress = (address, isSite = false) => {
+                    if (!address) return { location: "", district: "", pincode: "", name: "" };
+
+                    let currentAddress = address;
+                    let name = "";
+
+                    if (isSite) {
+                        const firstComma = address.indexOf(", ");
+                        if (firstComma !== -1) {
+                            name = address.substring(0, firstComma);
+                            currentAddress = address.substring(firstComma + 2);
+                        }
+                    }
+
+                    const parts = currentAddress.split(" - ");
+                    const pincode = parts.length > 1 ? parts[parts.length - 1] : "";
+                    const rest = parts[0].split(", ");
+                    const district = rest.length > 1 ? rest[rest.length - 1] : "";
+                    const location = rest.slice(0, -1).join(", ") || rest[0];
+                    return { location, district, pincode, name };
+                };
+
+                const office = splitAddress(data.officeAddress);
+                const site = splitAddress(data.customerProjectSite, true);
+
                 setFormData({
                     integratorName: data.integratorName || "",
-                    officeAddress: data.officeAddress || "",
+                    officeLocation: office.location,
+                    officeDistrict: office.district,
+                    officePincode: office.pincode,
                     contactPerson: data.contactPerson || "",
                     contactNo: data.contactNo || "",
                     email: data.email || "",
-                    customerProjectSite: data.customerProjectSite || "",
+                    siteLocation: site.location,
+                    siteDistrict: site.district,
+                    sitePincode: site.pincode,
+                    customerName: site.name,
                     customerContact: data.customerContact || "",
                     customerAlternate: data.customerAlternate || "",
                     customerEmail: data.customerEmail || "",
@@ -179,8 +213,13 @@ export default function FormPage() {
         let sanitizedValue = value;
 
         // Validation: Only numbers for integrator phone
-        if (name === "contactNo") {
+        // Validation: Only numbers for phone and pincode
+        if (["contactNo", "officePincode", "sitePincode"].includes(name)) {
             sanitizedValue = value.replace(/[^0-9]/g, "");
+            // Limit pincode to 6 digits
+            if (["officePincode", "sitePincode"].includes(name) && sanitizedValue.length > 6) {
+                return;
+            }
         }
 
         // Validation: Alphanumeric + standard email symbols for email fields
@@ -188,14 +227,19 @@ export default function FormPage() {
             sanitizedValue = value.replace(/[^a-zA-Z0-9@._-]/g, "");
         }
 
-        // Validation: Project Site Address - Restrict special characters (e.g. links)
-        if (name === "customerProjectSite") {
+        // Validation: Address fields - Restrict special characters
+        if (["officeLocation", "siteLocation"].includes(name)) {
             // Allow letters, numbers, spaces, and common address punctuation (., - / #)
             const addressRegex = /^[a-zA-Z0-9\s,.\-/#]*$/;
             if (!addressRegex.test(value)) {
-                alert("Invalid Data: Special characters are not allowed in the Project Site Address.");
+                alert("Invalid Data: Special characters are not allowed in the address fields.");
                 return; // Do not accept the input
             }
+        }
+
+        // Validation: District - Only alphabets and spaces
+        if (["officeDistrict", "siteDistrict"].includes(name)) {
+            sanitizedValue = value.replace(/[^a-zA-Z\s]/g, "");
         }
 
         setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
@@ -209,6 +253,12 @@ export default function FormPage() {
         // Validation: No whitespace or commas allowed
         if (/[\s,]/.test(value)) {
             alert("Invalid Data: Serial numbers should not contain whitespace or commas.");
+            return;
+        }
+
+        // Validation: Max 25 characters
+        if (value.length > 25) {
+            alert("Invalid Data: Serial numbers cannot exceed 25 characters.");
             return;
         }
 
@@ -232,6 +282,13 @@ export default function FormPage() {
     const handleFileChange = (e) => {
         if (e.target.files) {
             const selectedFiles = Array.from(e.target.files);
+
+            // Check if total files will exceed 2
+            if (previewImages.length + selectedFiles.length > 2) {
+                alert("Invalid Action: You can only upload a maximum of 2 site pictures.");
+                return;
+            }
+
             const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
             setFiles(prev => [...prev, ...selectedFiles]);
             setPreviewImages(prev => [...prev, ...newPreviews]);
@@ -266,14 +323,16 @@ export default function FormPage() {
                         // Create a set of existing serial numbers (trimmed and lowercase for case-insensitive check if needed, but let's stick to exact match for now)
                         const existingSet = new Set(prev.map(s => String(s).trim()));
 
-                        // Filter out serial numbers with whitespace or commas
+                        // Filter out serial numbers with whitespace/commas or length > 25
                         const validNewBatch = newSerialNumbers.filter(s => {
-                            if (/[\s,]/.test(String(s))) return false;
+                            const str = String(s);
+                            if (/[\s,]/.test(str)) return false;
+                            if (str.length > 25) return false;
                             return true;
                         });
 
                         if (validNewBatch.length < newSerialNumbers.length) {
-                            alert(`Filtered out ${newSerialNumbers.length - validNewBatch.length} serial number(s) containing invalid characters (whitespace or commas).`);
+                            alert(`Filtered out ${newSerialNumbers.length - validNewBatch.length} serial number(s) containing invalid characters or exceeding 25 characters.`);
                         }
 
                         // Deduplicate within the new batch itself first, then filter against existing
@@ -315,9 +374,9 @@ export default function FormPage() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // VALIDATION: Check if at least one image is uploaded (new files OR existing previews)
-        if (files.length === 0 && previewImages.length === 0) {
-            alert("Please upload at least one site picture to proceed.");
+        // VALIDATION: Check if exactly two images are uploaded
+        if (previewImages.length !== 2) {
+            alert("Please upload exactly 2 site pictures to proceed.");
             return;
         }
 
@@ -345,10 +404,20 @@ export default function FormPage() {
             let finalDocId;
             const requestData = {
                 ...formData,
+                officeAddress: `${formData.officeLocation}, ${formData.officeDistrict} - ${formData.officePincode}`,
+                customerProjectSite: `${formData.customerName}, ${formData.siteLocation}, ${formData.siteDistrict} - ${formData.sitePincode}`,
                 serialNumbers: [...new Set(serialNumbers.map(s => s.trim()).filter(Boolean))], // Remove duplicates and empty strings
                 // Combine existing URLs (strings) with new uploaded URLs
                 sitePictures: [...previewImages.filter(url => typeof url === 'string' && url.startsWith('http')), ...uploadedImageUrls]
             };
+            // Remove the temporary split fields before sending to backend
+            delete requestData.officeLocation;
+            delete requestData.officeDistrict;
+            delete requestData.officePincode;
+            delete requestData.siteLocation;
+            delete requestData.siteDistrict;
+            delete requestData.sitePincode;
+            delete requestData.customerName;
 
             if (editModeId) {
                 // UPDATE existing document via API
@@ -391,11 +460,16 @@ export default function FormPage() {
     const handleReset = () => {
         setFormData({
             integratorName: "",
-            officeAddress: "",
+            officeLocation: "",
+            officeDistrict: "",
+            officePincode: "",
             contactPerson: "",
             contactNo: "",
             email: "",
-            customerProjectSite: "",
+            siteLocation: "",
+            siteDistrict: "",
+            sitePincode: "",
+            customerName: "",
             customerContact: "",
             customerAlternate: "",
             customerEmail: "",
@@ -506,272 +580,335 @@ export default function FormPage() {
                     <div className="bg-white shadow-xl rounded-2xl p-5 sm:p-8 border border-slate-100">
                         {/* Logos Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 sm:mb-12 gap-6 sm:gap-4">
-            <img
-                src={premier}
-                alt="Premier Energies"
-                className="h-10 sm:h-12 w-auto object-contain"
-            />
-            <img
-                src={trusunlogo}
-                alt="TRUE Brand"
-                className="h-10 sm:h-12 w-auto object-contain"
-            />
-        </div>
+                            <img
+                                src={premier}
+                                alt="Premier Energies"
+                                className="h-10 sm:h-12 w-auto object-contain"
+                            />
+                            <img
+                                src={trusunlogo}
+                                alt="TRUE Brand"
+                                className="h-10 sm:h-12 w-auto object-contain"
+                            />
+                        </div>
 
-        <div className="text-center mb-8 border-b border-gray-100 pb-6">
-            <h1 className="text-2xl font-bold mb-2 text-slate-800">
-                {editModeId ? "Edit Verification Request" : "Premier Energies Warranty Certificate Request"}
-            </h1>
-            <p className="text-slate-500 text-sm">
-                {editModeId
-                    ? "Update your details below to resubmit for verification."
-                    : "Please fill out the details below to verify your installation site."}
-            </p>
-        </div>
+                        <div className="text-center mb-8 border-b border-gray-100 pb-6">
+                            <h1 className="text-2xl font-bold mb-2 text-slate-800">
+                                {editModeId ? "Edit Verification Request" : "Premier Energies Warranty Certificate Request"}
+                            </h1>
+                            <p className="text-slate-500 text-sm">
+                                {editModeId
+                                    ? "Update your details below to resubmit for verification."
+                                    : "Please fill out the details below to verify your installation site."}
+                            </p>
+                        </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
 
-            {/* Integrator Section */}
-            <div className="md:col-span-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 mb-2">
-                <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">1</span>
-                Integrator Details
-            </div>
-            <Input
-                label="Integrator / EPC Name"
-                name="integratorName"
-                required
-                value={formData.integratorName}
-                onChange={handleChange}
-                disabled={isSubmitting}
-            />
-            <Input
-                label="Office Address"
-                name="officeAddress"
-                required
-                value={formData.officeAddress}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                onFocus={() => setAddressHints(prev => ({ ...prev, office: true }))}
-                onBlur={() => setAddressHints(prev => ({ ...prev, office: false }))}
-                showTooltip={addressHints.office}
-                tooltipText="A full address is required, including the pincode."
-            />
-            <Input
-                label="Contact Person"
-                name="contactPerson"
-                required
-                value={formData.contactPerson}
-                onChange={handleChange}
-                disabled={isSubmitting}
-            />
-            <Input
-                label="Contact Number"
-                name="contactNo"
-                required
-                value={formData.contactNo}
-                onChange={handleChange}
-                disabled={isSubmitting}
-            />
-            <div className="md:col-span-2">
-                <Input
-                    label="Email Address"
-                    name="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={isSubmitting}
-                />
-            </div>
-
-            {/* Customer Section */}
-            <div className="md:col-span-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 mb-2 mt-6">
-                <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">2</span>
-                Customer Details
-            </div>
-            <div className="md:col-span-2">
-                <Input
-                    label="Project Site Address"
-                    name="customerProjectSite"
-                    required
-                    value={formData.customerProjectSite}
-                    onChange={handleChange}
-                    disabled={isSubmitting}
-                    onFocus={() => setAddressHints(prev => ({ ...prev, site: true }))}
-                    onBlur={() => setAddressHints(prev => ({ ...prev, site: false }))}
-                    showTooltip={addressHints.site}
-                    tooltipText="A full address is required, including the pincode."
-                />
-            </div>
-            <Input
-                label="Contact Number"
-                name="customerContact"
-                required
-                value={formData.customerContact}
-                onChange={handleChange}
-                disabled={isSubmitting}
-            />
-            <Input
-                label="Alternate Number"
-                name="customerAlternate"
-                value={formData.customerAlternate}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                autoComplete="off"
-            />
-            <Input
-                label="Customer Email"
-                name="customerEmail"
-                type="email"
-                required
-                value={formData.customerEmail}
-                onChange={handleChange}
-                disabled={isSubmitting}
-            />
-            <Input
-                label="Alternate Email"
-                name="customerAlternateEmail"
-                type="text"
-                value={formData.customerAlternateEmail}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                autoComplete="off"
-            />
-
-            {/* Serial Numbers */}
-            <div className="md:col-span-2 mt-6">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Serial Number List <span className="text-red-500">*</span>
-                </label>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                    {serialNumbers.map((sn, index) => (
-                        <div key={index} className="flex gap-2 animate-in slide-in-from-left-2 duration-200">
-                            <input
-                                type="text"
+                            {/* Integrator Section */}
+                            <div className="md:col-span-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 mb-2">
+                                <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">1</span>
+                                Integrator Details
+                            </div>
+                            <Input
+                                label="Integrator / EPC Name"
+                                name="integratorName"
                                 required
-                                value={sn}
+                                value={formData.integratorName}
+                                onChange={handleChange}
                                 disabled={isSubmitting}
-                                onChange={(e) => updateSerialNumber(index, e.target.value)}
-                                placeholder={`e.g. SN-2024-${100 + index}`}
-                                className="flex-grow rounded-lg border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F40C5]/20 focus:border-[#0F40C5] bg-white transition-all"
                             />
-                            {serialNumbers.length > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => removeSerialNumber(index)}
-                                    className="text-slate-400 hover:text-red-500 p-2 transition-colors"
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-1">
+                                    <Input
+                                        label="Office Location"
+                                        name="officeLocation"
+                                        required
+                                        value={formData.officeLocation}
+                                        onChange={handleChange}
+                                        disabled={isSubmitting}
+                                        placeholder="e.g. Street, Area"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <Input
+                                        label="District"
+                                        name="officeDistrict"
+                                        required
+                                        value={formData.officeDistrict}
+                                        onChange={handleChange}
+                                        disabled={isSubmitting}
+                                        placeholder="District"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <Input
+                                        label="Pincode"
+                                        name="officePincode"
+                                        required
+                                        value={formData.officePincode}
+                                        onChange={handleChange}
+                                        disabled={isSubmitting}
+                                        placeholder="6-digit Pincode"
+                                    />
+                                </div>
+                            </div>
+                            <Input
+                                label="Contact Person"
+                                name="contactPerson"
+                                required
+                                value={formData.contactPerson}
+                                onChange={handleChange}
+                                disabled={isSubmitting}
+                            />
+                            <Input
+                                label="Contact Number"
+                                name="contactNo"
+                                required
+                                value={formData.contactNo}
+                                onChange={handleChange}
+                                disabled={isSubmitting}
+                            />
+                            <div className="md:col-span-2">
+                                <Input
+                                    label="Email Address"
+                                    name="email"
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
                                     disabled={isSubmitting}
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                    <div className="flex gap-4 mt-2">
-                        <button
-                            type="button"
-                            onClick={addSerialNumber}
-                            disabled={isSubmitting}
-                            className="text-sm hover:underline font-medium flex items-center gap-1 transition-colors"
-                            style={{ color: PRIMARY_COLOR }}
-                        >
-                            <Plus size={16} /> Add another serial number
-                        </button>
+                                />
+                            </div>
 
-                        <label className="text-sm hover:underline font-medium flex items-center gap-1 transition-colors cursor-pointer" style={{ color: PRIMARY_COLOR }}>
-                            <Upload size={16} /> Upload Excel
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls"
-                                onChange={handleExcelUpload}
-                                className="hidden"
+                            {/* Customer Section */}
+                            <div className="md:col-span-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 mb-2 mt-6">
+                                <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">2</span>
+                                Customer Details
+                            </div>
+                            <div className="md:col-span-2">
+                                <Input
+                                    label="Customer Name"
+                                    name="customerName"
+                                    required
+                                    value={formData.customerName}
+                                    onChange={handleChange}
+                                    disabled={isSubmitting}
+                                    placeholder="Enter Customer Name"
+                                />
+                            </div>
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-1">
+                                    <Input
+                                        label="Site Location"
+                                        name="siteLocation"
+                                        required
+                                        value={formData.siteLocation}
+                                        onChange={handleChange}
+                                        disabled={isSubmitting}
+                                        placeholder="e.g. Village/City, Landmark"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <Input
+                                        label="District"
+                                        name="siteDistrict"
+                                        required
+                                        value={formData.siteDistrict}
+                                        onChange={handleChange}
+                                        disabled={isSubmitting}
+                                        placeholder="District"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <Input
+                                        label="Pincode"
+                                        name="sitePincode"
+                                        required
+                                        value={formData.sitePincode}
+                                        onChange={handleChange}
+                                        disabled={isSubmitting}
+                                        placeholder="6-digit Pincode"
+                                    />
+                                </div>
+                            </div>
+                            <Input
+                                label="Contact Number"
+                                name="customerContact"
+                                required
+                                value={formData.customerContact}
+                                onChange={handleChange}
                                 disabled={isSubmitting}
                             />
-                        </label>
-                    </div>
-                </div>
-            </div>
+                            <Input
+                                label="Alternate Number"
+                                name="customerAlternate"
+                                value={formData.customerAlternate}
+                                onChange={handleChange}
+                                disabled={isSubmitting}
+                                autoComplete="off"
+                            />
+                            <Input
+                                label="Customer Email"
+                                name="customerEmail"
+                                type="email"
+                                required
+                                value={formData.customerEmail}
+                                onChange={handleChange}
+                                disabled={isSubmitting}
+                            />
+                            <Input
+                                label="Alternate Email"
+                                name="customerAlternateEmail"
+                                type="text"
+                                value={formData.customerAlternateEmail}
+                                onChange={handleChange}
+                                disabled={isSubmitting}
+                                autoComplete="off"
+                            />
 
-            {/* Site Pictures */}
-            <div className="md:col-span-2 mt-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Site Pictures (Evidence) <span className="text-red-500">*</span>
-                </label>
-                <div
-                    className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center transition-colors relative ${isSubmitting ? 'bg-gray-50 border-gray-200' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}`}
-                >
-                    <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        disabled={isSubmitting}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                    />
-                    <div className="flex flex-col items-center justify-center pointer-events-none">
-                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                            <Upload size={24} className="text-slate-500" />
-                        </div>
-                        <p className="text-sm font-medium text-slate-700">Click to upload or drag and drop</p>
-                        <p className="text-xs text-orange-600 font-semibold mt-1">Please upload geotagged photos</p>
-                        <p className="text-xs text-slate-400 mt-1">SVG, PNG, JPG or GIF (Max 3MB)</p>
-                    </div>
-                </div>
+                            {/* Serial Numbers */}
+                            <div className="md:col-span-2 mt-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Serial Number List <span className="text-red-500">*</span>
+                                </label>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                                    {serialNumbers.map((sn, index) => (
+                                        <div key={index} className="flex gap-2 animate-in slide-in-from-left-2 duration-200">
+                                            <input
+                                                type="text"
+                                                required
+                                                value={sn}
+                                                disabled={isSubmitting}
+                                                onChange={(e) => updateSerialNumber(index, e.target.value)}
+                                                placeholder={`e.g. SN-2024-${100 + index}`}
+                                                className="flex-grow rounded-lg border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F40C5]/20 focus:border-[#0F40C5] bg-white transition-all"
+                                            />
+                                            {serialNumbers.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSerialNumber(index)}
+                                                    className="text-slate-400 hover:text-red-500 p-2 transition-colors"
+                                                    disabled={isSubmitting}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="flex gap-4 mt-2">
+                                        <button
+                                            type="button"
+                                            onClick={addSerialNumber}
+                                            disabled={isSubmitting}
+                                            className="text-sm hover:underline font-medium flex items-center gap-1 transition-colors"
+                                            style={{ color: PRIMARY_COLOR }}
+                                        >
+                                            <Plus size={16} /> Add another serial number
+                                        </button>
 
-                {/* Image Previews */}
-                {previewImages.length > 0 && (
-                    <div className="flex flex-wrap gap-4 mt-4">
-                        {previewImages.map((src, index) => (
-                            <div key={index} className="relative group w-24 h-24 animate-in zoom-in duration-200">
-                                <img
-                                    src={src}
-                                    alt={`Preview ${index}`}
-                                    className="w-full h-full object-cover rounded-lg border border-slate-200 shadow-sm"
-                                />
-                                {!isSubmitting && (
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                                    >
-                                        <XCircle size={14} />
-                                    </button>
+                                        <label className="text-sm hover:underline font-medium flex items-center gap-1 transition-colors cursor-pointer" style={{ color: PRIMARY_COLOR }}>
+                                            <Upload size={16} /> Upload Excel
+                                            <input
+                                                type="file"
+                                                accept=".xlsx, .xls"
+                                                onChange={handleExcelUpload}
+                                                className="hidden"
+                                                disabled={isSubmitting}
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Site Pictures */}
+                            <div className="md:col-span-2 mt-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Site Pictures (Evidence) <span className="text-red-500">*</span>
+                                </label>
+                                <div
+                                    className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center transition-colors relative ${isSubmitting ? 'bg-gray-50 border-gray-200' : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}`}
+                                >
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        disabled={isSubmitting}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                    />
+                                    <div className="flex flex-col items-center justify-center pointer-events-none">
+                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                                            <Upload size={24} className="text-slate-500" />
+                                        </div>
+                                        <p className="text-sm font-medium text-slate-700">Click to upload or drag and drop</p>
+                                        <p className="text-xs text-orange-600 font-semibold mt-1">Please upload geotagged photos</p>
+                                        <p className="text-xs text-slate-400 mt-1">SVG, PNG, JPG or GIF (Max 3MB)</p>
+                                    </div>
+                                </div>
+
+                                {/* Image Previews */}
+                                {previewImages.length > 0 && (
+                                    <div className="flex flex-wrap gap-4 mt-4">
+                                        {previewImages.map((src, index) => (
+                                            <div key={index} className="relative group w-24 h-24 animate-in zoom-in duration-200">
+                                                <img
+                                                    src={src}
+                                                    alt={`Preview ${index}`}
+                                                    className="w-full h-full object-cover rounded-lg border border-slate-200 shadow-sm"
+                                                />
+                                                {!isSubmitting && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeImage(index)}
+                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                                    >
+                                                        <XCircle size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
 
-            {/* Actions */}
-            <div className="md:col-span-2 pt-6 mt-4 border-t border-slate-100">
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full text-white px-4 py-3 sm:px-6 sm:py-4 rounded-xl shadow-lg hover:opacity-90 transition-all font-semibold text-base sm:text-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: PRIMARY_COLOR }}
-                >
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 size={20} className="animate-spin" />
-                            Submitting...
-                        </>
-                    ) : (
-                        <>
-                            <Save size={20} />
-                            {editModeId ? "Update Request" : "Submit Verification Request"}
-                        </>
-                    )}
-                </button>
-                <p className="text-center text-xs text-slate-400 mt-4">
-                    By submitting this form, you certify that all information is accurate.
-                </p>
-            </div>
-        </form>
-    </div>
+                            {/* Actions */}
+                            <div className="md:col-span-2 pt-6 mt-4 border-t border-slate-100">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full text-white px-4 py-3 sm:px-6 sm:py-4 rounded-xl shadow-lg hover:opacity-90 transition-all font-semibold text-base sm:text-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: PRIMARY_COLOR }}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 size={20} className="animate-spin" />
+                                            Submitting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={20} />
+                                            {editModeId ? "Update Request" : "Submit Verification Request"}
+                                        </>
+                                    )}
+                                </button>
+                                <p className="text-center text-xs text-slate-400 mt-4">
+                                    By submitting this form, you certify that all information is accurate.
+                                </p>
+
+
+                            </div>
+                        </form>
+
+                    </div>
                 )
-}
+                }
             </main >
+            {/* Footer */}
+            <footer className="py-8 text-center text-sm bg-white/50 backdrop-blur-sm border-t border-white/20 relative z-10">
+                <p className="text-slate-800 font-medium tracking-tight">&copy; {new Date().getFullYear()} True Sun Trading Company. All rights reserved.</p>
+                <p className="mt-2 text-xs text-slate-400">Developed by <a href="https://fennechron.com" target="_blank" rel="noopener noreferrer" className="hover:underline hover:brightness-110 transition-all font-semibold uppercase tracking-wider">Fennechron labs</a></p>
+            </footer>
         </div >
     );
 }
